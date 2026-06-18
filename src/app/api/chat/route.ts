@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { chatWithPhilosopher, type ChatMessage } from '@/lib/ai';
 import { PHILOSOPHER_BY_SLUG } from '@/lib/data/philosophers';
 import { isPremium } from '@/lib/entitlements';
+import { recordChat } from '@/lib/store';
 
 export const runtime = 'nodejs';
 export const maxDuration = 30;
@@ -50,6 +51,7 @@ export async function POST(req: NextRequest) {
   });
 
   if (!unlimited) counts.set(anon, { day, n: n + 1 });
+  recordChat().catch(() => {});
   return NextResponse.json({
     reply: result.reply,
     mocked: result.mocked,

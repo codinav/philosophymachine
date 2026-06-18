@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { BATTLES, SEED_VOTES } from '@/lib/data/battles';
 import { PHILOSOPHER_BY_SLUG } from '@/lib/data/philosophers';
+import { getStore } from '@/lib/store';
 import { Eyebrow } from '@/components/ui/primitives';
 
 export const metadata: Metadata = {
@@ -9,10 +10,18 @@ export const metadata: Metadata = {
   description: 'Nietzsche vs Buddha. Kant vs Krishna. Camus vs Sartre. The world is voting. Pick a side.',
 };
 
-export default function BattlesPage() {
+export const dynamic = 'force-dynamic'; // live tallies
+
+export default async function BattlesPage() {
+  const store = await getStore();
+  const tally = (slug: string) => {
+    const s = SEED_VOTES[slug] ?? { a: 0, b: 0 };
+    const l = store.battles[slug] ?? { a: 0, b: 0 };
+    return { a: s.a + l.a, b: s.b + l.b };
+  };
   const ranked = [...BATTLES].sort((a, b) => {
-    const va = SEED_VOTES[a.slug] ?? { a: 0, b: 0 };
-    const vb = SEED_VOTES[b.slug] ?? { a: 0, b: 0 };
+    const va = tally(a.slug);
+    const vb = tally(b.slug);
     return vb.a + vb.b - (va.a + va.b);
   });
 
@@ -27,7 +36,7 @@ export default function BattlesPage() {
         {ranked.map((b) => {
           const a = PHILOSOPHER_BY_SLUG[b.sideA];
           const c = PHILOSOPHER_BY_SLUG[b.sideB];
-          const votes = SEED_VOTES[b.slug] ?? { a: 1, b: 1 };
+          const votes = tally(b.slug);
           const total = votes.a + votes.b || 1;
           const pctA = Math.round((votes.a / total) * 100);
           return (

@@ -38,6 +38,12 @@ export function DailyDilemma({
       localStorage.setItem(key, choice);
     } catch {}
     setStreak(bumpStreak(today).count);
+    // record for admin analytics + real global split (no PII)
+    fetch('/api/event', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ type: 'daily_answer', date: today, choice }),
+    }).catch(() => {});
   };
 
   const youAgree = answered === 'agree';

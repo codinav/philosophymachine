@@ -15,7 +15,7 @@ const TABS = [
   { href: '/me', label: 'You', icon: '◍' },
 ];
 
-const HIDE_ON = [/^\/quiz/, /^\/chat\//, /\/report$/];
+const HIDE_ON = [/^\/quiz/, /^\/chat\//, /\/report$/, /^\/admin/];
 
 export function MobileTabBar() {
   const pathname = usePathname() || '/';

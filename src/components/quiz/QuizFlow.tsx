@@ -111,6 +111,7 @@ export function QuizFlow() {
 
   const [phase, setPhase] = useState<'intro' | 'quiz'>('intro');
   const [name, setName] = useState('');
+  const [len, setLen] = useState(0);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [answers, setAnswers] = useState<Record<string, Answer>>({});
   const [index, setIndex] = useState(0);
@@ -121,6 +122,7 @@ export function QuizFlow() {
   const begin = (chosenName: string, mode: QuizMode) => {
     persistName(chosenName);
     setName(chosenName);
+    setLen(mode.len);
     const qs = questionsForLen(mode.len);
     setQuestions(qs);
     // Carry the landing-page cold-open answer in, and skip re-asking it.
@@ -149,6 +151,12 @@ export function QuizFlow() {
     setComputing(true);
     const result = score(Object.values(finalAnswers));
     stashReveal(result);
+    // fire-and-forget analytics for the admin dashboard (no PII, derived only)
+    fetch('/api/event', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ type: 'quiz_completed', primary: result.primary, tribe: result.tribe, tier: result.rarityTier, len }),
+    }).catch(() => {});
     const n = name ? `&n=${encodeURIComponent(name)}` : '';
     const dest = compareWith
       ? `/compare/${compareWith}/${result.code}`

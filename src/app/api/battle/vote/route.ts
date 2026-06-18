@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { BATTLE_BY_SLUG, SEED_VOTES } from '@/lib/data/battles';
+import { voteBattle } from '@/lib/store';
 
 export const runtime = 'nodejs';
 
-// In-memory tally on top of the seeds (docs/04: real impl uses battle_votes +
-// edge-KV counters). Persists for the life of the server instance — enough for
-// the MVP to feel live; survives to DB in Phase 3.
-const live: Record<string, { a: number; b: number }> = {};
-
+// Votes persist to the store (seed counts + real votes). docs/04 uses a
+// battle_votes table + edge-KV counters in production; this is the local
+// single-instance equivalent.
 export async function POST(req: NextRequest) {
   let body: { battleSlug?: string; side?: 'a' | 'b' };
   try {
@@ -20,8 +19,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'bad request' }, { status: 400 });
   }
   const seed = SEED_VOTES[battleSlug] ?? { a: 0, b: 0 };
-  const cur = live[battleSlug] ?? { a: 0, b: 0 };
-  cur[side] += 1;
-  live[battleSlug] = cur;
-  return NextResponse.json({ a: seed.a + cur.a, b: seed.b + cur.b });
+  const live = await voteBattle(battleSlug, side);
+  return NextResponse.json({ a: seed.a + live.a, b: seed.b + live.b });
 }

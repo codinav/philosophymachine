@@ -2,8 +2,11 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { BATTLES, BATTLE_BY_SLUG, SEED_VOTES } from '@/lib/data/battles';
+import { getBattleExtra } from '@/lib/store';
 import { Eyebrow } from '@/components/ui/primitives';
 import { BattleVote } from '@/components/BattleVote';
+
+export const dynamic = 'force-dynamic'; // tallies are live
 
 export function generateStaticParams() {
   return BATTLES.map((b) => ({ slug: b.slug }));
@@ -22,7 +25,9 @@ export default async function BattlePage({ params }: Params) {
   const { slug } = await params;
   const b = BATTLE_BY_SLUG[slug];
   if (!b) notFound();
-  const seed = SEED_VOTES[slug] ?? { a: 1, b: 1 };
+  const baseSeed = SEED_VOTES[slug] ?? { a: 1, b: 1 };
+  const live = await getBattleExtra(slug);
+  const seed = { a: baseSeed.a + live.a, b: baseSeed.b + live.b };
 
   return (
     <main className="mx-auto max-w-2xl px-5 pb-28 pt-10">

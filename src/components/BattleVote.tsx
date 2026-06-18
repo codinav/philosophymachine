@@ -15,12 +15,12 @@ export function BattleVote({ battle, seed }: { battle: Battle; seed: { a: number
   const [chosen, setChosen] = useState<'a' | 'b' | null>(null);
 
   useEffect(() => {
+    // Votes now persist server-side and are included in `seed`, so we only
+    // restore the "already voted" UI state here (no optimistic +1, or we'd
+    // double-count the returning voter's own vote).
     try {
       const prev = localStorage.getItem(key) as 'a' | 'b' | null;
-      if (prev) {
-        setChosen(prev);
-        setVotes((v) => ({ ...v, [prev]: v[prev] + 1 }));
-      }
+      if (prev) setChosen(prev);
     } catch {}
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
