@@ -19,7 +19,8 @@ const sans = Inter({
   display: 'swap',
 });
 
-const SITE = 'https://philosophymachine.app';
+// Set NEXT_PUBLIC_SITE_URL to your deployed domain so share/OG links resolve there.
+const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'https://philosophymachine.app';
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE),
