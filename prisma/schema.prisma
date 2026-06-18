@@ -1,0 +1,169 @@
+// THE PHILOSOPHY MACHINE — Postgres schema (mirrors docs/04-database-schema.md).
+// Phase 3 backend (docs/07). The MVP runs anonymous-first and fully client-side;
+// enable persistence with: npm i -D prisma && npm i @prisma/client && npx prisma generate
+// Philosophers/tribes/battles are seeded reference data and also live in lib/data.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String?  @unique
+  name         String?
+  image        String?
+  anonId       String?  @map("anon_id")
+  referralCode String   @unique @map("referral_code")
+  referredById String?  @map("referred_by")
+  referredBy   User?    @relation("Referrals", fields: [referredById], references: [id])
+  referrals    User[]   @relation("Referrals")
+  level        Int      @default(1)
+  xp           Int      @default(0)
+  streakCount  Int      @default(0) @map("streak_count")
+  streakLastDay DateTime? @map("streak_last_day") @db.Date
+  results      Result[]
+  subscription Subscription?
+  userBadges   UserBadge[]
+  dailyAnswers DailyAnswer[]
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@index([anonId])
+  @@map("users")
+}
+
+model Result {
+  id                 String   @id @default(uuid())
+  code               String   @unique
+  userId             String?  @map("user_id")
+  user               User?    @relation(fields: [userId], references: [id])
+  anonId             String?  @map("anon_id")
+  answers            Json
+  blend              Json
+  primaryPhilosopher String   @map("primary_philosopher")
+  tribe              String
+  dimensions         Json
+  rarityPct          Float    @map("rarity_pct")
+  rarityTier         String   @map("rarity_tier")
+  unlocked           String[]
+  isDeep             Boolean  @default(false) @map("is_deep")
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  @@index([primaryPhilosopher])
+  @@index([tribe])
+  @@index([createdAt])
+  @@map("results")
+}
+
+model Battle {
+  slug      String   @id
+  title     String
+  sideA     String   @map("side_a")
+  sideB     String   @map("side_b")
+  prompt    String
+  isActive  Boolean  @default(true) @map("is_active")
+  votesA    Int      @default(0) @map("votes_a")
+  votesB    Int      @default(0) @map("votes_b")
+  startsAt  DateTime? @map("starts_at")
+  endsAt    DateTime? @map("ends_at")
+  votes     BattleVote[]
+
+  @@map("battles")
+}
+
+model BattleVote {
+  id              String   @id @default(uuid())
+  battleSlug      String   @map("battle_slug")
+  battle          Battle   @relation(fields: [battleSlug], references: [slug])
+  side            String
+  voterAnonId     String   @map("voter_anon_id")
+  voterResultCode String?  @map("voter_result_code")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@unique([battleSlug, voterAnonId])
+  @@map("battle_votes")
+}
+
+model DailyDilemma {
+  date       DateTime @id @db.Date
+  questionId String   @map("question_id")
+  published  Boolean  @default(true)
+  agg        Json?
+  answers    DailyAnswer[]
+
+  @@map("daily_dilemmas")
+}
+
+model DailyAnswer {
+  id        String   @id @default(uuid())
+  date      DateTime @db.Date
+  dilemma   DailyDilemma @relation(fields: [date], references: [date])
+  anonId    String   @map("anon_id")
+  userId    String?  @map("user_id")
+  user      User?    @relation(fields: [userId], references: [id])
+  value     Float
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([date, anonId])
+  @@map("daily_answers")
+}
+
+model Comparison {
+  id            String   @id @default(uuid())
+  code          String   @unique
+  resultA       String   @map("result_a")
+  resultB       String   @map("result_b")
+  agreementPct  Float    @map("agreement_pct")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@map("comparisons")
+}
+
+model Subscription {
+  id               String   @id @default(uuid())
+  userId           String   @unique @map("user_id")
+  user             User     @relation(fields: [userId], references: [id])
+  plan             String   @default("free")
+  status           String   @default("active")
+  provider         String?
+  currentPeriodEnd DateTime? @map("current_period_end")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@map("subscriptions")
+}
+
+model Badge {
+  slug        String   @id
+  name        String
+  description String
+  icon        String?
+  rarity      String?
+  userBadges  UserBadge[]
+
+  @@map("badges")
+}
+
+model UserBadge {
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id])
+  badgeSlug String   @map("badge_slug")
+  badge     Badge    @relation(fields: [badgeSlug], references: [slug])
+  earnedAt  DateTime @default(now()) @map("earned_at")
+
+  @@id([userId, badgeSlug])
+  @@map("user_badges")
+}
+
+// Nightly job populates this for the rarity system (docs/05 §6).
+model PhilosopherDistribution {
+  primaryPhilosopher String @id @map("primary_philosopher")
+  count              Int
+  pct                Float
+
+  @@map("philosopher_distribution")
+}

@@ -1,0 +1,135 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --accent: #6366f1;
+  --accent-soft: rgba(99, 102, 241, 0.45);
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    -webkit-text-size-adjust: 100%; /* don't let mobile Safari inflate text */
+    text-size-adjust: 100%;
+    overflow-x: clip;
+    scroll-behavior: smooth; /* in-page anchor jumps glide (app feel) */
+  }
+  body {
+    @apply bg-ink text-chalk font-sans;
+    background-image:
+      radial-gradient(60% 50% at 50% -10%, rgba(99, 102, 241, 0.12), transparent 70%),
+      radial-gradient(40% 40% at 90% 10%, rgba(168, 85, 247, 0.08), transparent 70%);
+    background-attachment: fixed;
+    min-height: 100dvh;
+    overflow-x: clip; /* guard against any horizontal scroll on phones */
+    overscroll-behavior-y: none; /* kill pull-to-refresh & rubber-band white flash */
+    -webkit-tap-highlight-color: transparent; /* no grey flash on tap */
+  }
+  /* Interactive chrome shouldn't be text-selectable — feels like a native app. */
+  button,
+  a,
+  [role='button'],
+  nav {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  /* When installed as a PWA, pad the content below the translucent status bar. */
+  @media (display-mode: standalone) {
+    .app-shell {
+      padding-top: env(safe-area-inset-top);
+    }
+  }
+  ::selection {
+    background: var(--accent-soft);
+    color: #fff;
+  }
+  /* long proper nouns (e.g. "Friedrich Nietzsche") shouldn't overflow narrow screens */
+  h1, h2 {
+    overflow-wrap: break-word;
+  }
+}
+
+@layer components {
+  .glass {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(18px) saturate(140%);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+    box-shadow: 0 8px 40px -12px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+  .glass-strong {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.03));
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(28px) saturate(150%);
+    -webkit-backdrop-filter: blur(28px) saturate(150%);
+  }
+  .accent-text {
+    color: var(--accent);
+  }
+  .accent-glow {
+    box-shadow: 0 0 60px -10px var(--accent-soft);
+  }
+  .grain::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0.035;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  .hairline {
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+  /* iOS notch / home-indicator safe areas for fixed bottom UI */
+  .safe-bottom {
+    padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
+  }
+  .pb-safe-tabbar {
+    padding-bottom: calc(5.5rem + env(safe-area-inset-bottom));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* range slider — the intensity control. Tall transparent hit area for easy
+   thumb-dragging on touch, with a thin visible track drawn via gradient. */
+.intensity {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 36px;
+  border-radius: 999px;
+  background:
+    linear-gradient(to right, rgba(255, 255, 255, 0.1), var(--accent), rgba(255, 255, 255, 0.1))
+    no-repeat center / 100% 5px;
+  outline: none;
+  touch-action: none; /* let the thumb own horizontal drags */
+}
+.intensity::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: #fff;
+  border: 2px solid var(--accent);
+  box-shadow: 0 0 24px -2px var(--accent-soft);
+  cursor: grab;
+}
+.intensity::-moz-range-thumb {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: #fff;
+  border: 2px solid var(--accent);
+  cursor: grab;
+}
