@@ -4,7 +4,7 @@ import { LinkButton, Eyebrow, GlassCard } from '@/components/ui/primitives';
 import { Portrait } from '@/components/ui/Portrait';
 import { accentVars } from '@/components/ui/primitives';
 import { TRIBE_LIST } from '@/lib/data/tribes';
-import { VISIBLE_PHILOSOPHERS } from '@/lib/data/philosophers';
+import { VISIBLE_PHILOSOPHERS, PHILOSOPHER_BY_SLUG } from '@/lib/data/philosophers';
 import { promoActive, promoDaysLeft } from '@/lib/entitlements';
 import { SiteFooter } from '@/components/layout/SiteFooter';
 
@@ -26,6 +26,7 @@ export default function Landing() {
           The Philosophy Machine
         </Link>
         <div className="hidden gap-6 text-sm text-muted sm:flex">
+          <Link href="#chat" className="transition-colors hover:text-chalk">Chat</Link>
           <Link href="/battles" className="transition-colors hover:text-chalk">Battles</Link>
           <Link href="/tribes" className="transition-colors hover:text-chalk">Tribes</Link>
           <Link href="/philosophers" className="transition-colors hover:text-chalk">Thinkers</Link>
@@ -87,6 +88,67 @@ export default function Landing() {
             <p className="mt-2 text-sm leading-relaxed text-muted">{s.d}</p>
           </GlassCard>
         ))}
+      </section>
+
+      {/* Chat feature */}
+      <section id="chat" className="mt-24 scroll-mt-6">
+        <Eyebrow className="mb-6">AI · talk back to history</Eyebrow>
+        <div className="grid items-center gap-8 lg:grid-cols-[1fr_1.05fr]">
+          <div>
+            <h2 className="font-display text-display font-semibold">Chat with your philosopher.</h2>
+            <p className="mt-4 max-w-md text-lg leading-relaxed text-muted">
+              Argue ethics with Kant. Sit with the Buddha. Push Socrates on what you think you know. Each
+              speaks in their own voice — and after the test, they know exactly how you think.
+            </p>
+            <p className="mt-7 text-xs uppercase tracking-[0.3em] text-muted">Pick a mind to talk to</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {['nietzsche', 'socrates', 'buddha', 'kant', 'krishna', 'camus', 'lao-tzu', 'confucius'].map((slug) => {
+                const p = PHILOSOPHER_BY_SLUG[slug];
+                if (!p) return null;
+                return (
+                  <Link
+                    key={slug}
+                    href={`/chat/${slug}`}
+                    className="rounded-full border border-white/10 px-3 py-1.5 text-sm text-chalk/80 transition-colors hover:border-white/30 hover:text-chalk"
+                  >
+                    <span className="mr-1.5" style={{ color: p.accent }}>{p.sigil}</span>
+                    {p.name}
+                  </Link>
+                );
+              })}
+              <Link href="/philosophers" className="rounded-full border border-dashed border-white/15 px-3 py-1.5 text-sm text-muted transition-colors hover:text-chalk">
+                + all 17 →
+              </Link>
+            </div>
+          </div>
+
+          {/* Live-feeling preview */}
+          <GlassCard strong className="p-5 sm:p-6" style={accentVars('#ef4444', 'rgba(239,68,68,0.45)')}>
+            <div className="flex items-center gap-3 border-b border-white/10 pb-3">
+              <Portrait sigil="⚡" accent="#ef4444" accentSoft="rgba(239,68,68,0.45)" size="sm" />
+              <div>
+                <p className="font-display font-semibold" style={{ color: '#ef4444' }}>Friedrich Nietzsche</p>
+                <p className="text-xs text-muted">Existentialist · in his own voice</p>
+              </div>
+            </div>
+            <div className="mt-4 flex flex-col gap-3">
+              <div className="max-w-[80%] self-end rounded-2xl bg-chalk px-4 py-2.5 text-sm text-ink">
+                Is suffering pointless?
+              </div>
+              <div className="glass max-w-[90%] self-start rounded-2xl px-4 py-2.5 text-sm leading-relaxed">
+                Pointless? No — it is the chisel. Man is a bridge, not an end. Tell me what you flee from, and I
+                will show you what you could yet become.
+              </div>
+            </div>
+            <Link
+              href="/chat/nietzsche"
+              className="mt-5 block rounded-full py-3 text-center text-sm font-medium text-ink transition-all hover:brightness-110"
+              style={{ background: '#ef4444' }}
+            >
+              Start the conversation →
+            </Link>
+          </GlassCard>
+        </div>
       </section>
 
       {/* Tribes preview */}
