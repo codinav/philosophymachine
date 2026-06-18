@@ -58,11 +58,17 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  // suppressHydrationWarning on BOTH <html> and <body>: browser extensions
+  // (QuillBot's data-qb-installed, Grammarly, password managers, etc.) inject
+  // attributes here before React loads. Without this, that mismatch aborts
+  // hydration — which silently leaves the page non-interactive (dead buttons).
   return (
-    <html lang="en" className={`${display.variable} ${sans.variable}`}>
-      {/* suppressHydrationWarning: browser extensions (password managers,
-          Grammarly, etc.) commonly inject attributes onto <body>, which would
-          otherwise trip React's hydration warning. */}
+    <html
+      lang="en"
+      className={`${display.variable} ${sans.variable}`}
+      data-scroll-behavior="smooth"
+      suppressHydrationWarning
+    >
       <body className="grain" suppressHydrationWarning>
         <MotionProvider>
           <Starfield />
