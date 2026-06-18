@@ -60,6 +60,14 @@ function mockReply(philosopherSlug: string, lastUser: string): string {
   return `[${name} reflects — configure a free GEMINI_API_KEY (aistudio.google.com) to hear my full voice.]\n\nYou ask: "${lastUser.slice(0, 120)}". Consider this: ${p?.oneLiner ?? ''} As I once put it — "${p?.quote ?? ''}" Sit with that, and tell me where it troubles you.`;
 }
 
+// Shown when a key IS configured but the call failed (rate limit / overload),
+// so we don't wrongly tell the user to "configure a key".
+function busyReply(philosopherSlug: string): string {
+  const p = PHILOSOPHER_BY_SLUG[philosopherSlug];
+  const name = p?.name ?? 'The philosopher';
+  return `[${name} pauses — the oracle is at capacity for a moment (the free AI tier is rate-limited). Ask again shortly.]\n\nWhile you wait: ${p?.oneLiner ?? ''} As I once put it — "${p?.quote ?? ''}"`;
+}
+
 // Roomy enough that replies finish cleanly; the system prompt still asks for
 // brevity (<150 words), so this is a ceiling against mid-sentence truncation.
 const MAX_TOKENS = 800;
@@ -110,24 +118,32 @@ async function geminiCall(model: string, system: string, messages: ChatMessage[]
 }
 
 async function viaGemini(system: string, messages: ChatMessage[]): Promise<string> {
-  // Try the configured model, then resilient fallbacks. Retry transient
-  // overloads (429/500/503) — Gemini Flash free tier 503s under load.
+  // Keep requests-per-message SMALL. The free tier's per-minute limit is low,
+  // and hammering it with retries is exactly what trips a 429 — so we do NOT
+  // retry rate limits. Try the configured model, then one fallback model
+  // (separate per-model quota). Only a server overload (503/500) on the first
+  // model earns a single short retry.
   const configured = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
-  const models = [...new Set([configured, 'gemini-2.0-flash', 'gemini-flash-latest'])];
+  const models = [...new Set([configured, 'gemini-2.0-flash'])];
   let lastErr: unknown;
-  for (const model of models) {
-    for (let attempt = 0; attempt < 3; attempt++) {
-      try {
-        const text = await geminiCall(model, system, messages);
-        if (text) return text;
-        break; // empty reply → try next model
-      } catch (e) {
-        lastErr = e;
-        const status = (e as { status?: number }).status ?? 0;
-        const transient = status === 429 || status === 500 || status === 503;
-        if (!transient) break; // bad model/request → move to next fallback model
-        await sleep(500 * (attempt + 1)); // backoff before retry
+  for (let i = 0; i < models.length; i++) {
+    const model = models[i];
+    try {
+      const text = await geminiCall(model, system, messages);
+      if (text) return text;
+    } catch (e) {
+      lastErr = e;
+      const status = (e as { status?: number }).status ?? 0;
+      if ((status === 503 || status === 500) && i === 0) {
+        await sleep(700); // brief retry for transient overload only
+        try {
+          const t = await geminiCall(model, system, messages);
+          if (t) return t;
+        } catch (e2) {
+          lastErr = e2;
+        }
       }
+      // 429 (rate limit) or anything else: fall through to the next model.
     }
   }
   throw lastErr ?? new Error('Gemini: no reply');
@@ -208,11 +224,14 @@ export async function chatWithPhilosopher(opts: {
       );
     else if (provider === 'ollama') reply = await viaOllama(system, opts.messages);
 
+    // Key configured but no text came back → "busy", not "configure a key".
     return reply
       ? { reply, mocked: false, provider }
-      : { reply: mockReply(opts.philosopherSlug, lastUser), mocked: true, provider };
+      : { reply: busyReply(opts.philosopherSlug), mocked: true, provider };
   } catch (err) {
     console.error(`chatWithPhilosopher (${provider}) failed:`, err);
-    return { reply: mockReply(opts.philosopherSlug, lastUser), mocked: true, provider };
+    // A key is configured (provider !== 'mock'); the call failed (rate limit/
+    // overload) — show the "busy" message, not the "configure a key" one.
+    return { reply: busyReply(opts.philosopherSlug), mocked: true, provider };
   }
 }
