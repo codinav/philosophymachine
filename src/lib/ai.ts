@@ -190,10 +190,21 @@ async function viaOllama(system: string, messages: ChatMessage[]): Promise<strin
 }
 
 function selectedProvider(): string {
-  if (process.env.ANTHROPIC_API_KEY) return 'anthropic';
-  if (process.env.GEMINI_API_KEY) return 'gemini';
-  if (process.env.GROQ_API_KEY) return 'groq';
-  if (process.env.OLLAMA_BASE_URL) return 'ollama';
+  const has: Record<string, boolean> = {
+    anthropic: !!process.env.ANTHROPIC_API_KEY,
+    gemini: !!process.env.GEMINI_API_KEY,
+    groq: !!process.env.GROQ_API_KEY,
+    ollama: !!process.env.OLLAMA_BASE_URL,
+  };
+  // Explicit override wins — e.g. CHAT_PROVIDER=groq to use Groq even if a
+  // Gemini key is also present. Falls through if that provider isn't configured.
+  const forced = (process.env.CHAT_PROVIDER || '').toLowerCase();
+  if (forced === 'mock' || (forced && has[forced])) return forced;
+
+  if (has.anthropic) return 'anthropic';
+  if (has.gemini) return 'gemini';
+  if (has.groq) return 'groq';
+  if (has.ollama) return 'ollama';
   return 'mock';
 }
 
